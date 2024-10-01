@@ -1,14 +1,31 @@
-import React from 'react';
+"use client";
+import React, { useEffect, useState } from 'react';
 import ProductCard from '../components/ProductCard';
 
-const featuredProducts = [
-  { id: 1, title: 'Product 1', price: 29.99, image: 'https://via.placeholder.com/300' },
-  { id: 2, title: 'Product 2', price: 49.99, image: 'https://via.placeholder.com/300' },
-  { id: 3, title: 'Product 3', price: 19.99, image: 'https://via.placeholder.com/300' },
-  { id: 4, title: 'Product 4', price: 59.99, image: 'https://via.placeholder.com/300' },
-];
 
 const HomePage: React.FC = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const fetchProducts = async () => {
+    try {
+      const response = await fetch('/api/featured-products');
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      const data = await response.json();
+      setProducts(data);
+    } catch (error) {
+      console.error(error);
+      setError(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
   return (
     <div>
       {/* Hero Section */}
@@ -26,7 +43,7 @@ const HomePage: React.FC = () => {
       <section className="container mx-auto my-10">
         <h2 className="text-3xl font-bold text-center mb-6">Featured Products</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {featuredProducts.map(product => (
+          {products.map(product => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>

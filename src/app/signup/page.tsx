@@ -29,7 +29,7 @@ const SignupPage: React.FC = () => {
         lastName, 
         email, 
         password, 
-        roleId: 1 
+        roleId: 2 
       }), 
     });
 

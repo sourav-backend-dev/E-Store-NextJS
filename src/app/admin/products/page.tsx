@@ -1,35 +1,55 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { useUser } from '../../../context/UserContext';
+import { useUser } from '@/context/UserContext';
 
 interface Product {
   id: number;
   name: string;
+  description: string;
   price: number;
+  stock: number;
+  imageUrl: string;
 }
 
-const ManageProductsPage: React.FC = () => {
+const AdminPage: React.FC = () => {
   const { user } = useUser();
   const [products, setProducts] = useState<Product[]>([]);
-  const [newProduct, setNewProduct] = useState<{ name: string; price: number }>({ name: '', price: 0 });
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    description: '',
+    price: 0,
+    stock: 0,
+    imageUrl: '',
+    categoryId: 1, // Example category ID, modify as needed
+    userId: user?.id || 1, // Example user ID, modify as needed
+  });
 
   // Check if the user is an admin
   if (!user || user.roleId !== 1) {
     return <h1 className="text-red-500">Access Denied</h1>;
   }
 
-  // Fetch products from the server when the component mounts
+  // Fetch products from API
   useEffect(() => {
     const fetchProducts = async () => {
       const response = await fetch('/api/products');
       const data = await response.json();
       setProducts(data);
     };
+
     fetchProducts();
   }, []);
 
-  const handleAddProduct = async (e: React.FormEvent) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setNewProduct((prev) => ({
+      ...prev,
+      [name]: name === 'price' || name === 'stock' ? parseFloat(value) : value,
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const response = await fetch('/api/products', {
       method: 'POST',
@@ -38,79 +58,60 @@ const ManageProductsPage: React.FC = () => {
       },
       body: JSON.stringify(newProduct),
     });
-    const data = await response.json();
-    setProducts((prev) => [...prev, data]);
-    setNewProduct({ name: '', price: 0 }); // Reset form
+
+    const createdProduct = await response.json();
+    setProducts((prev) => [...prev, createdProduct]);
+    setNewProduct({ name: '', description: '', price: 0, stock: 0, imageUrl: '', categoryId: 1, userId: user.id });
   };
 
-  const handleDeleteProduct = async (id: number) => {
-    await fetch(`/api/products/${id}`, {
+  const handleDelete = async (id: number) => {
+    const response = await fetch('/api/products', {
       method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ id }),
     });
-    setProducts((prev) => prev.filter(product => product.id !== id));
+
+    if (response.ok) {
+      setProducts((prev) => prev.filter((product) => product.id !== id));
+    }
   };
 
   return (
     <div className="container mx-auto my-10">
-      <h1 className="text-3xl font-bold">Manage Products</h1>
-      
-      <form onSubmit={handleAddProduct} className="mb-6">
-        <h2 className="text-xl">Add New Product</h2>
-        <div className="mb-4">
-          <label className="block mb-2">Product Name:</label>
-          <input
-            type="text"
-            value={newProduct.name}
-            onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-            className="border rounded w-full py-2 px-3"
-            required
-          />
-        </div>
-        <div className="mb-4">
-          <label className="block mb-2">Price:</label>
-          <input
-            type="number"
-            value={newProduct.price}
-            onChange={(e) => setNewProduct({ ...newProduct, price: Number(e.target.value) })}
-            className="border rounded w-full py-2 px-3"
-            required
-          />
-        </div>
-        <button type="submit" className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
-          Add Product
-        </button>
-      </form>
+      <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+      <p>Welcome, {user.email}! Here you can manage the application.</p>
 
-      <h2 className="text-xl">Product List</h2>
-      <table className="min-w-full bg-white border border-gray-200">
-        <thead>
-          <tr>
-            <th className="border-b p-2">ID</th>
-            <th className="border-b p-2">Name</th>
-            <th className="border-b p-2">Price</th>
-            <th className="border-b p-2">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {products.map((product) => (
-            <tr key={product.id}>
-              <td className="border-b p-2">{product.id}</td>
-              <td className="border-b p-2">{product.name}</td>
-              <td className="border-b p-2">${product.price.toFixed(2)}</td>
-              <td className="border-b p-2">
-                <button
-                  onClick={() => handleDeleteProduct(product.id)}
-                  className="text-red-600 hover:underline"
-                >
-                  Delete
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <h2 className="text-2xl mt-4">Product List</h2>
+      <ul>
+        {products.map((product) => (
+          <li key={product.id} className="flex justify-between items-center my-2">
+            <div>
+              <strong>{product.name}</strong> - {product.description} - ${product.price} (Stock: {product.stock})
+            </div>
+            <button onClick={() => handleDelete(product.id)} className="bg-red-600 text-white py-1 px-2 rounded hover:bg-red-700">
+              Delete
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <h2 className="text-2xl mt-4">Add New Product</h2>
+      <form onSubmit={handleSubmit} className="mb-4">
+        <div>
+          <input type="text" name="name" placeholder="Product Name" value={newProduct.name} onChange={handleChange} required className="border rounded w-full py-2 px-3 mb-2" />
+          <textarea name="description" placeholder="Description" value={newProduct.description} onChange={handleChange} required className="border rounded w-full py-2 px-3 mb-2" />
+          <input type="number" name="price" placeholder="Price" value={newProduct.price} onChange={handleChange} required className="border rounded w-full py-2 px-3 mb-2" />
+          <input type="number" name="stock" placeholder="Stock" value={newProduct.stock} onChange={handleChange} required className="border rounded w-full py-2 px-3 mb-2" />
+          <input type="text" name="imageUrl" placeholder="Image URL" value={newProduct.imageUrl} onChange={handleChange} className="border rounded w-full py-2 px-3 mb-2" />
+          <button type="submit" className="bg-blue-600 text-white py-2 px-4 rounded hover:bg-blue-700">
+            Add Product
+          </button>
+        </div>
+      </form>
     </div>
   );
 };
 
-export default ManageProductsPage;
+export default AdminPage;

@@ -2,12 +2,14 @@
 
 import Link from 'next/link';
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation'; // Import useRouter for redirection
 import { useUser } from '../../context/UserContext'; 
 
 const LoginPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const { setUser } = useUser();
+  const router = useRouter(); // Initialize useRouter for redirection
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,9 +28,19 @@ const LoginPage: React.FC = () => {
       // Store the user data in context
       setUser(data.user); // Assuming the user data is returned in data.user
       console.log('Login successful:', data.user);
+
+      // Redirect based on user role
+      if (data.user.roleId === 1) {
+        // If the user is an admin
+        router.push('/admin'); // Adjust the path to your admin home
+      } else {
+        // If the user is a regular client
+        router.push('/'); // Adjust the path to your app's home page
+      }
     } else {
       // Handle login errors
       console.error('Login failed:', data.message);
+      // You can also display an error message to the user
     }
   };
 

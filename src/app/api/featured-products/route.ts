@@ -5,6 +5,7 @@ const prisma = new PrismaClient();
 
 export async function GET() {
   const products = await prisma.product.findMany({
+    take: 4,
     include: { user: true, category: true },
   });
   return NextResponse.json(products);
